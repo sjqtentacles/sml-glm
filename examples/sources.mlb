@@ -1,0 +1,6 @@
+$(SML_LIB)/basis/basis.mlb
+
+../lib/github.com/sjqtentacles/sml-glm/glm.mlb
+../lib/github.com/sjqtentacles/sml-raster/sources.mlb
+
+transforms.sml
