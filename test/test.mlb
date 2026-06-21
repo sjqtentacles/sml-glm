@@ -1,0 +1,13 @@
+(* Test executable basis: the library plus the test harness and runner. *)
+
+$(SML_LIB)/basis/basis.mlb
+
+../lib/github.com/sjqtentacles/sml-glm/glm.mlb
+
+harness.sml
+support.sml
+test_vec.sml
+test_mat.sml
+test_quat.sml
+entry.sml
+main.sml
