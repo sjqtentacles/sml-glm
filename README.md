@@ -20,7 +20,7 @@ directly onto what a GPU expects.
 
 ## Status
 
-- 74 assertions, green on MLton and Poly/ML.
+- 95 assertions, green on MLton and Poly/ML.
 - Basis-library only; deterministic across compilers.
 
 ## Install
@@ -79,10 +79,36 @@ val rotated = Glm.Quat.rotateV (mid, Glm.Vec3.v (1.0, 0.0, 0.0))
 | Module | Highlights |
 | --- | --- |
 | `Glm.Vec2` / `Vec3` / `Vec4` | `add`, `sub`, `scale`, `dot`, `cross` (Vec3), `length`, `normalize`, `lerp`, `dist`, `approx` |
+| `Glm.Mat2` | `mul`, `transpose`, `det`, `inverse` (`NONE` if singular), `mulV` |
 | `Glm.Mat3` | `mul`, `transpose`, `det`, `inverse` (`NONE` if singular), `mulV` |
-| `Glm.Mat4` | `mul`, `transpose`, `det`, `inverse`, `translate`, `scaleM`, `rotate`/`rotateX/Y/Z`, `perspective`, `ortho`, `lookAt`, `transformPoint`, `transformDir`, `toList` |
+| `Glm.Mat4` | `mul`, `transpose`, `det`, `inverse`, `translate`, `scaleM`, `rotate`/`rotateX/Y/Z`, `perspective`, `ortho`, `frustum`, `lookAt`, `transformPoint`, `transformDir`, `toList` |
 | `Glm.Quat` | `fromAxisAngle`, `mul`, `conj`, `normalize`, `rotateV`, `slerp`, `toMat4`, `fromMat3` |
-| top level | `radians`, `degrees`, `clamp`, `lerp`, `pi` |
+| top level | `radians`, `degrees`, `clamp`, `lerp`, `pi`, `project`, `unproject` |
+
+### Mat2, frustum, and screen-space projection
+
+```sml
+(* 2x2 matrices, same shape as Mat3/Mat4 (column-major, NONE if singular) *)
+val r90 = Glm.Mat2.fromRows (Glm.Vec2.v (0.0, ~1.0), Glm.Vec2.v (1.0, 0.0))
+val v'  = Glm.Mat2.mulV (r90, Glm.Vec2.v (1.0, 0.0))     (* (0.0, 1.0) *)
+
+(* general (possibly off-center) perspective frustum, glFrustum semantics *)
+val proj = Glm.Mat4.frustum
+  { left = ~1.0, right = 1.0, bottom = ~1.0, top = 1.0, near = 1.0, far = 100.0 }
+
+(* world <-> screen, gluProject / gluUnProject semantics *)
+val vp  = { x = 0.0, y = 0.0, width = 800.0, height = 600.0 }
+val win = Glm.project   { obj = p,   model = view, proj = proj, viewport = vp }
+val obj = Glm.unproject { win = win, model = view, proj = proj, viewport = vp }
+(* unproject (project p) = p, up to rounding *)
+```
+
+`Glm.Mat2` mirrors the `Mat3`/`Mat4` interface (`id`, `fromRows`/`fromCols`,
+`mul`, `transpose`, `det`, `inverse`, `mulV`, ...). `Mat4.frustum` is the
+general perspective projection of which `perspective` is the symmetric special
+case. `project` maps an object-space point to window coordinates (pixel `x`/`y`,
+depth `z` in `[0, 1]`); `unproject` is its inverse and returns `Vec3.zero` when
+`proj * model` is singular.
 
 ### Conventions
 

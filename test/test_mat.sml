@@ -7,6 +7,33 @@ struct
 
   fun run () =
     let
+      val _ = Harness.section "Mat2"
+      val m2 = G.Mat2.fromRows (G.Vec2.v (1.0, 2.0), G.Vec2.v (3.0, 4.0))
+      val () = checkMat2 "Mat2.mul id left" (m2, G.Mat2.mul (G.Mat2.id, m2))
+      val () = checkMat2 "Mat2.mul id right" (m2, G.Mat2.mul (m2, G.Mat2.id))
+      val () = checkMat2 "Mat2.transpose involution"
+                 (m2, G.Mat2.transpose (G.Mat2.transpose m2))
+      val () = checkClose "Mat2.det id = 1" (1.0, G.Mat2.det G.Mat2.id)
+      val () = checkClose "Mat2.det known = -2" (~2.0, G.Mat2.det m2)
+      val () = checkVec2 "Mat2.mulV id = v"
+                 (G.Vec2.v (3.0, ~2.0), G.Mat2.mulV (G.Mat2.id, G.Vec2.v (3.0, ~2.0)))
+      (* m2 * (1,1) = row sums *)
+      val () = checkVec2 "Mat2.mulV row sums"
+                 (G.Vec2.v (3.0, 7.0), G.Mat2.mulV (m2, G.Vec2.v (1.0, 1.0)))
+      val () = (case G.Mat2.inverse m2 of
+                  SOME inv => checkMat2 "Mat2.inverse: m*inv = id"
+                                (G.Mat2.id, G.Mat2.mul (m2, inv))
+                | NONE => Harness.check "Mat2.inverse: m*inv = id" false)
+      val () = Harness.check "Mat2.inverse singular = NONE"
+                 (not (Option.isSome
+                   (G.Mat2.inverse
+                      (G.Mat2.fromRows (G.Vec2.v (1.0,2.0), G.Vec2.v (2.0,4.0))))))
+      (* fromCols is the transpose of fromRows of the same pair *)
+      val () = checkMat2 "Mat2.fromCols = transpose fromRows"
+                 (G.Mat2.fromCols (G.Vec2.v (1.0,2.0), G.Vec2.v (3.0,4.0)),
+                  G.Mat2.transpose
+                    (G.Mat2.fromRows (G.Vec2.v (1.0,2.0), G.Vec2.v (3.0,4.0))))
+
       val _ = Harness.section "Mat3"
       val m = G.Mat3.fromRows (G.Vec3.v (1.0, 2.0, 3.0),
                                G.Vec3.v (4.0, 5.0, 6.0),
@@ -118,6 +145,48 @@ struct
       val frontZ = G.Vec3.z (G.Mat4.transformPoint (la, G.Vec3.v (0.0, 0.0, 0.0)))
       val () = Harness.check "lookAt: target in front is at negative z"
                  (frontZ < 0.0)
+
+      (* frustum: a symmetric frustum equals the matching perspective *)
+      val _ = Harness.section "frustum / project"
+      val fru = G.Mat4.frustum {left = ~1.0, right = 1.0, bottom = ~1.0,
+                                top = 1.0, near = 1.0, far = 101.0}
+      val () = checkMat4 "frustum symmetric = perspective(fovy=90)"
+                 (G.Mat4.perspective {fovy = G.radians 90.0, aspect = 1.0,
+                                      near = 1.0, far = 101.0},
+                  fru)
+      (* frustum: canonical GL entries (column-major index c*4+r) *)
+      val fl = G.Mat4.toList fru
+      val () = checkClose "frustum [0,0] = 2n/(r-l)" (1.0, List.nth (fl, 0))
+      val () = checkClose "frustum [1,1] = 2n/(t-b)" (1.0, List.nth (fl, 5))
+      val () = checkClose "frustum [2,2] = -(f+n)/(f-n)" (~1.02, List.nth (fl, 10))
+      val () = checkClose "frustum [3,2] = -1" (~1.0, List.nth (fl, 11))
+      val () = checkClose "frustum [2,3] = -2fn/(f-n)" (~2.02, List.nth (fl, 14))
+      (* off-center frustum: x/y shear entries [0,2], [1,2] *)
+      val fru2 = G.Mat4.frustum {left = 0.0, right = 4.0, bottom = 0.0,
+                                 top = 2.0, near = 1.0, far = 5.0}
+      val fl2 = G.Mat4.toList fru2
+      val () = checkClose "frustum [0,2] = (r+l)/(r-l)" (1.0, List.nth (fl2, 8))
+      val () = checkClose "frustum [1,2] = (t+b)/(t-b)" (1.0, List.nth (fl2, 9))
+
+      (* project / unproject round-trip *)
+      val proj = G.Mat4.perspective {fovy = G.radians 60.0, aspect = 4.0/3.0,
+                                     near = 0.1, far = 100.0}
+      val view = G.Mat4.lookAt {eye = G.Vec3.v (0.0, 0.0, 5.0),
+                                center = G.Vec3.zero,
+                                up = G.Vec3.v (0.0, 1.0, 0.0)}
+      val vp = {x = 0.0, y = 0.0, width = 800.0, height = 600.0}
+      val p = G.Vec3.v (0.5, ~0.3, 1.2)
+      val win = G.project {obj = p, model = view, proj = proj, viewport = vp}
+      val () = checkVec3 "unproject (project p) = p"
+                 (p, G.unproject {win = win, model = view, proj = proj,
+                                  viewport = vp})
+      (* the view center (origin) lands at the middle of the viewport *)
+      val ctr = G.project {obj = G.Vec3.zero, model = view, proj = proj,
+                           viewport = vp}
+      val () = checkClose "project origin -> screen center x"
+                 (400.0, G.Vec3.x ctr)
+      val () = checkClose "project origin -> screen center y"
+                 (300.0, G.Vec3.y ctr)
     in
       ()
     end

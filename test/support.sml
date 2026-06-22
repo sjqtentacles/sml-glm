@@ -21,6 +21,8 @@ struct
     Harness.check name (G.Vec3.approx eps (ex, ac))
   fun checkVec4 name (ex, ac) =
     Harness.check name (G.Vec4.approx eps (ex, ac))
+  fun checkMat2 name (ex, ac) =
+    Harness.check name (G.Mat2.approx eps (ex, ac))
   fun checkMat3 name (ex, ac) =
     Harness.check name (G.Mat3.approx eps (ex, ac))
   fun checkMat4 name (ex, ac) =
