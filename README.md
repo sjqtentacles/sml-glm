@@ -1,5 +1,7 @@
 # sml-glm
 
+[![CI](https://github.com/sjqtentacles/sml-glm/actions/workflows/ci.yml/badge.svg)](https://github.com/sjqtentacles/sml-glm/actions/workflows/ci.yml)
+
 Pure Standard ML linear algebra and transforms for graphics, simulation, and
 geometry — the math half of an OpenGL-style toolkit, with **no FFI and no
 external dependencies**. Builds and tests byte-identically under both
